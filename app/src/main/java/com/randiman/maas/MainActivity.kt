@@ -445,4 +445,3 @@ fun RandimanMaas() {
         }
     }
 }
-c
