@@ -21,6 +21,8 @@ import java.util.Locale
 
 private val Turkuaz = Color(0xFF16A6A1)
 private val Yesil = Color(0xFF167A45)
+private val PazarZemin = Color(0xFFFFE0E0)
+private val PazarYazi = Color(0xFFC62828)
 
 data class GunKaydi(
     val mekikler: List<String> = listOf("", "", ""),
@@ -34,19 +36,26 @@ private fun tl(deger: Double): String =
     String.format(Locale("tr", "TR"), "%.2f", deger)
 
 private fun ayAnahtari(ay: Calendar): String =
-    String.format(Locale.US, "%04d_%02d",
-        ay.get(Calendar.YEAR), ay.get(Calendar.MONTH) + 1)
+    String.format(
+        Locale.US,
+        "%04d_%02d",
+        ay.get(Calendar.YEAR),
+        ay.get(Calendar.MONTH) + 1
+    )
 
 private fun ayAdi(ay: Calendar): String {
     val ad = ay.getDisplayName(
-        Calendar.MONTH, Calendar.LONG, Locale("tr", "TR")
+        Calendar.MONTH,
+        Calendar.LONG,
+        Locale("tr", "TR")
     ) ?: ""
     return "$ad ${ay.get(Calendar.YEAR)}"
 }
 
 private fun ayGunSayisi(ay: Calendar): Int =
     ay.getActualMaximum(Calendar.DAY_OF_MONTH)
-    private fun haftaninGunu(ay: Calendar, gun: Int): String {
+
+private fun haftaninGunu(ay: Calendar, gun: Int): String {
     val takvim = ay.clone() as Calendar
     takvim.set(Calendar.DAY_OF_MONTH, gun)
 
@@ -73,10 +82,12 @@ private fun ayHazirla(
     ay: Calendar
 ) {
     val anahtar = ayAnahtari(ay)
+
     if (prefs.getBoolean("ay_hazir_$anahtar", false)) return
 
     val editor = prefs.edit()
     val bugun = Calendar.getInstance()
+
     val buAyMi =
         ay.get(Calendar.YEAR) == bugun.get(Calendar.YEAR) &&
         ay.get(Calendar.MONTH) == bugun.get(Calendar.MONTH)
@@ -87,6 +98,7 @@ private fun ayHazirla(
         } else {
             "13.3550"
         }
+
         editor.putString("birim_${anahtar}_$tezgah", eskiBirim)
     }
 
@@ -97,6 +109,7 @@ private fun ayHazirla(
                     "mekik_${anahtar}_${gun}_$tezgah",
                     prefs.getString("mekik_${gun}_$tezgah", "") ?: ""
                 )
+
                 editor.putString(
                     "durus_${anahtar}_${gun}_$tezgah",
                     prefs.getString("durus_${gun}_$tezgah", "") ?: ""
@@ -114,16 +127,19 @@ private fun ayKayitlariniOku(
     ay: Calendar
 ): List<GunKaydi> {
     val anahtar = ayAnahtari(ay)
+
     return List(ayGunSayisi(ay)) { gun ->
         GunKaydi(
             mekikler = List(3) { tezgah ->
                 prefs.getString(
-                    "mekik_${anahtar}_${gun}_$tezgah", ""
+                    "mekik_${anahtar}_${gun}_$tezgah",
+                    ""
                 ) ?: ""
             },
             duruslar = List(3) { tezgah ->
                 prefs.getString(
-                    "durus_${anahtar}_${gun}_$tezgah", ""
+                    "durus_${anahtar}_${gun}_$tezgah",
+                    ""
                 ) ?: ""
             }
         )
@@ -135,9 +151,11 @@ private fun birimleriOku(
     ay: Calendar
 ): List<String> {
     val anahtar = ayAnahtari(ay)
+
     return List(3) { tezgah ->
         prefs.getString(
-            "birim_${anahtar}_$tezgah", "13.3550"
+            "birim_${anahtar}_$tezgah",
+            "13.3550"
         ) ?: "13.3550"
     }
 }
@@ -145,7 +163,10 @@ private fun birimleriOku(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { RandimanMaas() }
+
+        setContent {
+            RandimanMaas()
+        }
     }
 }
 
@@ -153,6 +174,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun RandimanMaas() {
     val context = LocalContext.current
+
     val prefs = remember {
         context.getSharedPreferences("randiman_maas", 0)
     }
@@ -165,11 +187,13 @@ fun RandimanMaas() {
         )
     }
 
-    val ilkAy = remember { seciliAy.clone() as Calendar }
-    val ilkAyAnahtari = remember { ayAnahtari(ilkAy) }
+    val ilkAy = remember {
+        seciliAy.clone() as Calendar
+    }
 
     val gunler = remember {
         ayHazirla(prefs, ilkAy)
+
         mutableStateListOf<GunKaydi>().apply {
             addAll(ayKayitlariniOku(prefs, ilkAy))
         }
@@ -183,11 +207,15 @@ fun RandimanMaas() {
 
     val acikGunler = remember {
         mutableStateListOf<Boolean>().apply {
-            repeat(ayGunSayisi(ilkAy)) { add(false) }
+            repeat(ayGunSayisi(ilkAy)) {
+                add(false)
+            }
         }
     }
 
-    var ayarlarAcik by remember { mutableStateOf(false) }
+    var ayarlarAcik by remember {
+        mutableStateOf(false)
+    }
 
     fun kaydet() {
         val anahtar = ayAnahtari(seciliAy)
@@ -203,12 +231,14 @@ fun RandimanMaas() {
                     "mekik_${anahtar}_${gun}_$tezgah",
                     kayit.mekikler[tezgah]
                 )
+
                 editor.putString(
                     "durus_${anahtar}_${gun}_$tezgah",
                     kayit.duruslar[tezgah]
                 )
             }
         }
+
         editor.apply()
     }
 
@@ -217,15 +247,20 @@ fun RandimanMaas() {
 
         val yeniTakvim = yeniAy.clone() as Calendar
         yeniTakvim.set(Calendar.DAY_OF_MONTH, 1)
+
         ayHazirla(prefs, yeniTakvim)
 
         seciliAy = yeniTakvim
 
         gunler.clear()
-        gunler.addAll(ayKayitlariniOku(prefs, yeniTakvim))
+        gunler.addAll(
+            ayKayitlariniOku(prefs, yeniTakvim)
+        )
 
         birimler.clear()
-        birimler.addAll(birimleriOku(prefs, yeniTakvim))
+        birimler.addAll(
+            birimleriOku(prefs, yeniTakvim)
+        )
 
         acikGunler.clear()
         repeat(ayGunSayisi(yeniTakvim)) {
@@ -239,37 +274,65 @@ fun RandimanMaas() {
         ayYukle(yeniAy)
     }
 
-    fun guncelleMekik(gun: Int, tezgah: Int, deger: String) {
+    fun guncelleMekik(
+        gun: Int,
+        tezgah: Int,
+        deger: String
+    ) {
         val yeni = gunler[gun].mekikler.toMutableList()
         yeni[tezgah] = deger.filter { it.isDigit() }
-        gunler[gun] = gunler[gun].copy(mekikler = yeni)
+
+        gunler[gun] = gunler[gun].copy(
+            mekikler = yeni
+        )
+
         kaydet()
     }
 
-    fun guncelleDurus(gun: Int, tezgah: Int, deger: String) {
+    fun guncelleDurus(
+        gun: Int,
+        tezgah: Int,
+        deger: String
+    ) {
         val yeni = gunler[gun].duruslar.toMutableList()
+
         yeni[tezgah] = deger.filter {
             it.isDigit() || it == ',' || it == '.'
         }
-        gunler[gun] = gunler[gun].copy(duruslar = yeni)
+
+        gunler[gun] = gunler[gun].copy(
+            duruslar = yeni
+        )
+
         kaydet()
     }
 
-    fun guncelleBirim(tezgah: Int, deger: String) {
+    fun guncelleBirim(
+        tezgah: Int,
+        deger: String
+    ) {
         birimler[tezgah] = deger.filter {
             it.isDigit() || it == ',' || it == '.'
         }
+
         kaydet()
     }
 
-    fun tezgahKazanci(gun: GunKaydi, tezgah: Int): Double {
+    fun tezgahKazanci(
+        gun: GunKaydi,
+        tezgah: Int
+    ): Double {
         val mekik = sayi(gun.mekikler[tezgah])
         val durus = sayi(gun.duruslar[tezgah])
-        return (mekik + durus * 7.0) * sayi(birimler[tezgah])
+
+        return (mekik + durus * 7.0) *
+            sayi(birimler[tezgah])
     }
 
     val toplamKazanc = gunler.sumOf { gun ->
-        (0..2).sumOf { tezgah -> tezgahKazanci(gun, tezgah) }
+        (0..2).sumOf { tezgah ->
+            tezgahKazanci(gun, tezgah)
+        }
     }
 
     val toplamMekik = gunler.sumOf { gun ->
@@ -283,9 +346,11 @@ fun RandimanMaas() {
     val birinciKayitliGunler = gunler.filter {
         it.mekikler[0].isNotBlank()
     }
+
     val ikinciKayitliGunler = gunler.filter {
         it.mekikler[1].isNotBlank()
     }
+
     val ortakKayitliGunler = gunler.filter {
         it.mekikler[0].isNotBlank() &&
         it.mekikler[1].isNotBlank()
@@ -308,7 +373,8 @@ fun RandimanMaas() {
     val toplamOrtalama =
         if (ortakKayitliGunler.isNotEmpty()) {
             ortakKayitliGunler.sumOf {
-                sayi(it.mekikler[0]) + sayi(it.mekikler[1])
+                sayi(it.mekikler[0]) +
+                sayi(it.mekikler[1])
             } / ortakKayitliGunler.size
         } else 0.0
 
@@ -324,10 +390,14 @@ fun RandimanMaas() {
     MaterialTheme(colorScheme = renkler) {
         Scaffold(
             containerColor = Turkuaz,
+
             topBar = {
                 TopAppBar(
                     title = {
-                        Text("RANDIMAN MAAŞ", color = Color.White)
+                        Text(
+                            "RANDIMAN MAAŞ",
+                            color = Color.White
+                        )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Yesil,
@@ -336,43 +406,68 @@ fun RandimanMaas() {
                 )
             }
         ) { padding ->
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(
+                        horizontal = 12.dp,
+                        vertical = 10.dp
+                    ),
+
                 verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
-                item {
-                    val pazar = pazarMi(seciliAy, index + 1)
 
-Card(
-    modifier = Modifier.fillMaxWidth(),
-    colors = CardDefaults.cardColors(
-        containerColor = if (pazar)
-            Color(0xFFFFE0E0)
-        else
-            Color.White
-    ),
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White
                         )
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                .padding(
+                                    horizontal = 8.dp,
+                                    vertical = 4.dp
+                                ),
+
+                            horizontalArrangement =
+                                Arrangement.SpaceBetween,
+
+                            verticalAlignment =
+                                androidx.compose.ui.Alignment.CenterVertically
                         ) {
-                            TextButton(onClick = { ayDegistir(-1) }) {
-                                Text("‹ ÖNCEKİ", color = Yesil)
+                            TextButton(
+                                onClick = {
+                                    ayDegistir(-1)
+                                }
+                            ) {
+                                Text(
+                                    "‹ ÖNCEKİ",
+                                    color = Yesil
+                                )
                             }
+
                             Text(
-                                ayAdi(seciliAy).uppercase(Locale("tr", "TR")),
+                                ayAdi(seciliAy).uppercase(
+                                    Locale("tr", "TR")
+                                ),
                                 color = Yesil,
                                 style = MaterialTheme.typography.titleMedium
                             )
-                            TextButton(onClick = { ayDegistir(1) }) {
-                                Text("SONRAKİ ›", color = Yesil)
+
+                            TextButton(
+                                onClick = {
+                                    ayDegistir(1)
+                                }
+                            ) {
+                                Text(
+                                    "SONRAKİ ›",
+                                    color = Yesil
+                                )
                             }
                         }
                     }
@@ -388,56 +483,67 @@ Card(
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement =
+                                Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
                                 "TOPLAM MAAŞ",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleMedium
+                                color = Color.White
                             )
+
                             Text(
                                 "${tl(toplamKazanc)} TL",
                                 color = Color.White,
                                 style = MaterialTheme.typography.headlineLarge
                             )
+
                             HorizontalDivider(
                                 color = Color.White.copy(alpha = 0.5f)
                             )
+
                             Text(
                                 "1. TEZGÂH ORTALAMASI",
                                 color = Color.White
                             )
+
                             Text(
                                 "${tl(birinciOrtalama)} mekik",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleLarge
                             )
+
                             Text(
                                 "2. TEZGÂH ORTALAMASI",
                                 color = Color.White
                             )
+
                             Text(
                                 "${tl(ikinciOrtalama)} mekik",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleLarge
                             )
+
                             Text(
                                 "1 + 2. TEZGÂH TOPLAM ORTALAMASI",
                                 color = Color.White
                             )
+
                             Text(
                                 "${tl(toplamOrtalama)} mekik",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleLarge
                             )
+
                             Text(
                                 "Toplam mekik: ${tl(toplamMekik)}",
                                 color = Color.White
                             )
+
                             Text(
                                 "Toplam duruş: ${tl(toplamDurus)} saat",
                                 color = Color.White
                             )
+
                             Text(
                                 "Duruş ek mekiği: ${tl(toplamDurus * 7)}",
                                 color = Color.White
@@ -457,20 +563,25 @@ Card(
                             modifier = Modifier.padding(12.dp)
                         ) {
                             TextButton(
-                                onClick = { ayarlarAcik = !ayarlarAcik },
+                                onClick = {
+                                    ayarlarAcik = !ayarlarAcik
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement =
+                                        Arrangement.SpaceBetween
                                 ) {
                                     Text(
                                         "⚙ AYARLAR",
                                         color = Yesil,
                                         style = MaterialTheme.typography.titleMedium
                                     )
+
                                     Text(
-                                        if (ayarlarAcik) "Kapat ▲" else "Aç ▼",
+                                        if (ayarlarAcik) "Kapat ▲"
+                                        else "Aç ▼",
                                         color = Turkuaz
                                     )
                                 }
@@ -481,22 +592,31 @@ Card(
                                     "TEZGÂH BİRİM FİYATLARI",
                                     style = MaterialTheme.typography.titleSmall
                                 )
+
                                 Spacer(Modifier.height(8.dp))
+
                                 for (tezgah in 0..2) {
                                     OutlinedTextField(
                                         value = birimler[tezgah],
+
                                         onValueChange = {
                                             guncelleBirim(tezgah, it)
                                         },
+
                                         label = {
-                                            Text("${tezgah + 1}. Tezgâh Birim Fiyatı (TL)")
+                                            Text(
+                                                "${tezgah + 1}. Tezgâh Birim Fiyatı (TL)"
+                                            )
                                         },
+
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Decimal
                                         ),
+
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
+
                                     Spacer(Modifier.height(8.dp))
                                 }
                             }
@@ -513,52 +633,88 @@ Card(
                 }
 
                 itemsIndexed(gunler) { index, gun ->
-                    val gunKazanci = (0..2).sumOf { tezgah ->
+
+                    val pazar = pazarMi(
+                        seciliAy,
+                        index + 1
+                    )
+
+                    val gunKazanci = (0..2).sumOf {
+                        tezgah ->
                         tezgahKazanci(gun, tezgah)
                     }
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
+
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.White
+                            containerColor = if (pazar) {
+                                PazarZemin
+                            } else {
+                                Color.White
+                            }
                         ),
+
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(10.dp)
                         ) {
+
                             TextButton(
                                 onClick = {
-                                    acikGunler[index] = !acikGunler[index]
+                                    acikGunler[index] =
+                                        !acikGunler[index]
                                 },
+
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+
+                                    horizontalArrangement =
+                                        Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        "${index + 1}. GÜN",
-                                        color = Yesil,
+                                        "${index + 1}. ${haftaninGunu(seciliAy, index + 1)}",
+
+                                        color = if (pazar) {
+                                            PazarYazi
+                                        } else {
+                                            Yesil
+                                        },
+
                                         style = MaterialTheme.typography.titleMedium
                                     )
+
                                     Text(
-                                        if (acikGunler[index]) "Kapat ▲" else "Aç ▼",
-                                        color = Turkuaz
+                                        if (acikGunler[index]) {
+                                            "Kapat ▲"
+                                        } else {
+                                            "Aç ▼"
+                                        },
+
+                                        color = if (pazar) {
+                                            PazarYazi
+                                        } else {
+                                            Turkuaz
+                                        }
                                     )
                                 }
                             }
 
                             Text(
                                 "Günlük kazanç: ${tl(gunKazanci)} TL",
-                                color = Turkuaz
+                                color = if (pazar) PazarYazi else Turkuaz
                             )
 
                             if (acikGunler[index]) {
                                 HorizontalDivider()
+
                                 Spacer(Modifier.height(8.dp))
 
                                 for (tezgah in 0..2) {
+
                                     Text(
                                         "${tezgah + 1}. TEZGÂH",
                                         color = Yesil,
@@ -567,13 +723,23 @@ Card(
 
                                     OutlinedTextField(
                                         value = gun.mekikler[tezgah],
+
                                         onValueChange = {
-                                            guncelleMekik(index, tezgah, it)
+                                            guncelleMekik(
+                                                index,
+                                                tezgah,
+                                                it
+                                            )
                                         },
-                                        label = { Text("Mekik sayısı") },
+
+                                        label = {
+                                            Text("Mekik sayısı")
+                                        },
+
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Number
                                         ),
+
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
@@ -582,13 +748,23 @@ Card(
 
                                     OutlinedTextField(
                                         value = gun.duruslar[tezgah],
+
                                         onValueChange = {
-                                            guncelleDurus(index, tezgah, it)
+                                            guncelleDurus(
+                                                index,
+                                                tezgah,
+                                                it
+                                            )
                                         },
-                                        label = { Text("Duruş saati") },
+
+                                        label = {
+                                            Text("Duruş saati")
+                                        },
+
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Decimal
                                         ),
+
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true
                                     )
@@ -597,10 +773,12 @@ Card(
                                         "Tezgâh kazancı: ${tl(tezgahKazanci(gun, tezgah))} TL",
                                         color = Turkuaz
                                     )
+
                                     Spacer(Modifier.height(12.dp))
                                 }
 
                                 HorizontalDivider()
+
                                 Text(
                                     "GÜNLÜK TOPLAM: ${tl(gunKazanci)} TL",
                                     color = Yesil,
