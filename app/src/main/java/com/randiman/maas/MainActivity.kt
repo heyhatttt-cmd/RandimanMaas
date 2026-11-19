@@ -24,19 +24,15 @@ data class GunKaydi(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            RandimanMaas()
-        }
+        setContent { RandimanMaas() }
     }
 }
 
-fun sayi(deger: String): Double {
-    return deger.replace(",", ".").toDoubleOrNull() ?: 0.0
-}
+fun sayi(deger: String): Double =
+    deger.replace(",", ".").toDoubleOrNull() ?: 0.0
 
-fun tl(deger: Double): String {
-    return String.format(Locale("tr", "TR"), "%.2f", deger)
-}
+fun tl(deger: Double): String =
+    String.format(Locale("tr", "TR"), "%.2f", deger)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +67,11 @@ fun RandimanMaas() {
         }
     }
 
+    // Günler başlangıçta kapalıdır.
+    val acikGunler = remember {
+        mutableStateListOf(*Array(31) { false })
+    }
+
     fun kaydet() {
         val editor = prefs.edit()
 
@@ -80,17 +81,10 @@ fun RandimanMaas() {
 
         gunler.forEachIndexed { gun, kayit ->
             for (tezgah in 0..2) {
-                editor.putString(
-                    "mekik_${gun}_$tezgah",
-                    kayit.mekikler[tezgah]
-                )
-                editor.putString(
-                    "durus_${gun}_$tezgah",
-                    kayit.duruslar[tezgah]
-                )
+                editor.putString("mekik_${gun}_$tezgah", kayit.mekikler[tezgah])
+                editor.putString("durus_${gun}_$tezgah", kayit.duruslar[tezgah])
             }
         }
-
         editor.apply()
     }
 
@@ -119,9 +113,8 @@ fun RandimanMaas() {
 
     fun tezgahKazanci(gun: GunKaydi, tezgah: Int): Double {
         val mekik = sayi(gun.mekikler[tezgah])
-        val durusSaati = sayi(gun.duruslar[tezgah])
-        val ekMekik = durusSaati * 7.0
-        return (mekik + ekMekik) * sayi(birimler[tezgah])
+        val durus = sayi(gun.duruslar[tezgah])
+        return (mekik + durus * 7.0) * sayi(birimler[tezgah])
     }
 
     val toplamMekik = gunler.sumOf { gun ->
@@ -132,20 +125,14 @@ fun RandimanMaas() {
         gun.duruslar.sumOf { sayi(it) }
     }
 
-    val ekMekik = toplamDurus * 7.0
-
     val toplamKazanc = gunler.sumOf { gun ->
-        (0..2).sumOf { tezgah ->
-            tezgahKazanci(gun, tezgah)
-        }
+        (0..2).sumOf { tezgah -> tezgahKazanci(gun, tezgah) }
     }
 
     MaterialTheme {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("RANDIMAN MAAŞ") }
-                )
+                TopAppBar(title = { Text("RANDIMAN MAAŞ") })
             }
         ) { padding ->
             LazyColumn(
@@ -153,44 +140,18 @@ fun RandimanMaas() {
                     .fillMaxSize()
                     .padding(padding)
                     .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    Text(
-                        "TEZGÂH BİRİM FİYATLARI",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
-                    for (tezgah in 0..2) {
-                        OutlinedTextField(
-                            value = birimler[tezgah],
-                            onValueChange = {
-                                guncelleBirim(tezgah, it)
-                            },
-                            label = {
-                                Text("${tezgah + 1}. Tezgâh Birim Fiyatı (TL)")
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Decimal
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                "AYLIK TOPLAM",
-                                style = MaterialTheme.typography.titleLarge
-                            )
+                            Text("AYLIK ÖZET", style = MaterialTheme.typography.titleLarge)
                             Text("Toplam Mekik: ${tl(toplamMekik)}")
                             Text("Toplam Duruş: ${tl(toplamDurus)} saat")
-                            Text("Duruştan Gelen Ek Mekik: ${tl(ekMekik)}")
+                            Text("Duruş Ek Mekik: ${tl(toplamDurus * 7)}")
                             HorizontalDivider()
                             Text(
                                 "TOPLAM KAZANÇ: ${tl(toplamKazanc)} TL",
@@ -200,74 +161,129 @@ fun RandimanMaas() {
                         }
                     }
 
+                    var fiyatlarAcik by remember { mutableStateOf(false) }
+
+                    TextButton(
+                        onClick = { fiyatlarAcik = !fiyatlarAcik }
+                    ) {
+                        Text(
+                            if (fiyatlarAcik) "Birim fiyatlarını gizle"
+                            else "Birim fiyatlarını düzenle"
+                        )
+                    }
+
+                    if (fiyatlarAcik) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                for (tezgah in 0..2) {
+                                    OutlinedTextField(
+                                        value = birimler[tezgah],
+                                        onValueChange = {
+                                            guncelleBirim(tezgah, it)
+                                        },
+                                        label = {
+                                            Text("${tezgah + 1}. Tezgâh Birim Fiyatı (TL)")
+                                        },
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Decimal
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Text(
-                        "Duruşun her saati 7 ek mekik olarak hesaplanır.",
-                        style = MaterialTheme.typography.bodySmall
+                        "GÜNLÜK KAYITLAR",
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
 
                 itemsIndexed(gunler) { index, gun ->
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                "${index + 1}. GÜN",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-
-                            for (tezgah in 0..2) {
-                                Text(
-                                    "${tezgah + 1}. TEZGÂH",
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-
-                                OutlinedTextField(
-                                    value = gun.mekikler[tezgah],
-                                    onValueChange = {
-                                        guncelleMekik(index, tezgah, it)
-                                    },
-                                    label = { Text("Mekik sayısı") },
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Number
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                OutlinedTextField(
-                                    value = gun.duruslar[tezgah],
-                                    onValueChange = {
-                                        guncelleDurus(index, tezgah, it)
-                                    },
-                                    label = { Text("Duruş saati") },
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Decimal
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Text(
-                                    "Bu tezgâh kazancı: ${
-                                        tl(tezgahKazanci(gun, tezgah))
-                                    } TL"
-                                )
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            TextButton(
+                                onClick = {
+                                    acikGunler[index] = !acikGunler[index]
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "${index + 1}. GÜN",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        if (acikGunler[index]) "Kapat ▲" else "Aç ▼"
+                                    )
+                                }
                             }
-
-                            HorizontalDivider()
 
                             val gunKazanci = (0..2).sumOf {
                                 tezgahKazanci(gun, it)
                             }
 
                             Text(
-                                "Günlük toplam: ${tl(gunKazanci)} TL",
-                                style = MaterialTheme.typography.titleMedium
+                                "Günlük kazanç: ${tl(gunKazanci)} TL",
+                                style = MaterialTheme.typography.bodyMedium
                             )
+
+                            if (acikGunler[index]) {
+                                HorizontalDivider()
+                                Spacer(Modifier.height(8.dp))
+
+                                for (tezgah in 0..2) {
+                                    Text(
+                                        "${tezgah + 1}. TEZGÂH",
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+
+                                    OutlinedTextField(
+                                        value = gun.mekikler[tezgah],
+                                        onValueChange = {
+                                            guncelleMekik(index, tezgah, it)
+                                        },
+                                        label = { Text("Mekik sayısı") },
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Number
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = gun.duruslar[tezgah],
+                                        onValueChange = {
+                                            guncelleDurus(index, tezgah, it)
+                                        },
+                                        label = { Text("Duruş saati") },
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Decimal
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Text(
+                                        "Tezgâh kazancı: ${tl(tezgahKazanci(gun, tezgah))} TL"
+                                    )
+
+                                    Spacer(Modifier.height(8.dp))
+                                }
+
+                                Text(
+                                    "Günlük toplam: ${tl(gunKazanci)} TL",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
