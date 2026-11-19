@@ -46,6 +46,27 @@ private fun ayAdi(ay: Calendar): String {
 
 private fun ayGunSayisi(ay: Calendar): Int =
     ay.getActualMaximum(Calendar.DAY_OF_MONTH)
+    private fun haftaninGunu(ay: Calendar, gun: Int): String {
+    val takvim = ay.clone() as Calendar
+    takvim.set(Calendar.DAY_OF_MONTH, gun)
+
+    return when (takvim.get(Calendar.DAY_OF_WEEK)) {
+        Calendar.SUNDAY -> "Pazar"
+        Calendar.MONDAY -> "Pazartesi"
+        Calendar.TUESDAY -> "Salı"
+        Calendar.WEDNESDAY -> "Çarşamba"
+        Calendar.THURSDAY -> "Perşembe"
+        Calendar.FRIDAY -> "Cuma"
+        Calendar.SATURDAY -> "Cumartesi"
+        else -> ""
+    }
+}
+
+private fun pazarMi(ay: Calendar, gun: Int): Boolean {
+    val takvim = ay.clone() as Calendar
+    takvim.set(Calendar.DAY_OF_MONTH, gun)
+    return takvim.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
+}
 
 private fun ayHazirla(
     prefs: android.content.SharedPreferences,
@@ -323,10 +344,16 @@ fun RandimanMaas() {
                 verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White
+                    val pazar = pazarMi(seciliAy, index + 1)
+
+Card(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(
+        containerColor = if (pazar)
+            Color(0xFFFFE0E0)
+        else
+            Color.White
+    ),
                         )
                     ) {
                         Row(
