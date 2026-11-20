@@ -61,7 +61,6 @@ private fun ayGunSayisi(ay: Calendar): Int =
 private fun haftaninGunu(ay: Calendar, gun: Int): String {
     val takvim = ay.clone() as Calendar
     takvim.set(Calendar.DAY_OF_MONTH, gun)
-
     return when (takvim.get(Calendar.DAY_OF_WEEK)) {
         Calendar.SUNDAY -> "Pazar"
         Calendar.MONDAY -> "Pazartesi"
@@ -90,7 +89,6 @@ private fun ayHazirla(
 
     val editor = prefs.edit()
     val bugun = Calendar.getInstance()
-
     val buAyMi =
         ay.get(Calendar.YEAR) == bugun.get(Calendar.YEAR) &&
         ay.get(Calendar.MONTH) == bugun.get(Calendar.MONTH)
@@ -131,7 +129,6 @@ private fun ayKayitlariniOku(
     ay: Calendar
 ): List<GunKaydi> {
     val anahtar = ayAnahtari(ay)
-
     return List(ayGunSayisi(ay)) { gun ->
         GunKaydi(
             mekikler = List(3) { tezgah ->
@@ -186,7 +183,6 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RandimanMaas() {
-
     val context = LocalContext.current
 
     val prefs = remember {
@@ -254,7 +250,6 @@ fun RandimanMaas() {
                     "mekik_${anahtar}_${gun}_$tezgah",
                     kayit.mekikler[tezgah]
                 )
-
                 editor.putString(
                     "durus_${anahtar}_${gun}_$tezgah",
                     kayit.duruslar[tezgah]
@@ -274,7 +269,6 @@ fun RandimanMaas() {
         ayHazirla(prefs, yeniTakvim)
 
         seciliAy = yeniTakvim
-
         gunler.clear()
         gunler.addAll(ayKayitlariniOku(prefs, yeniTakvim))
 
@@ -311,7 +305,6 @@ fun RandimanMaas() {
         deger: String
     ) {
         val yeni = gunler[gun].duruslar.toMutableList()
-
         yeni[tezgah] = deger.filter {
             it.isDigit() || it == ',' || it == '.'
         }
@@ -387,10 +380,8 @@ fun RandimanMaas() {
     )
 
     MaterialTheme(colorScheme = renkler) {
-
         Scaffold(
             containerColor = Turkuaz,
-
             topBar = {
                 TopAppBar(
                     title = {
@@ -406,7 +397,6 @@ fun RandimanMaas() {
                 )
             }
         ) { padding ->
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -415,10 +405,8 @@ fun RandimanMaas() {
                         horizontal = 12.dp,
                         vertical = 10.dp
                     ),
-
                 verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
-
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -436,7 +424,6 @@ fun RandimanMaas() {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-
                             TextButton(
                                 onClick = { ayDegistir(-1) }
                             ) {
@@ -472,7 +459,6 @@ fun RandimanMaas() {
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-
                             Text(
                                 "TOPLAM MAAŞ",
                                 color = Color.White,
@@ -556,8 +542,7 @@ fun RandimanMaas() {
                         }
                     }
                 }
-
-                item {
+                                item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
@@ -567,7 +552,6 @@ fun RandimanMaas() {
                         Column(
                             modifier = Modifier.padding(12.dp)
                         ) {
-
                             TextButton(
                                 onClick = {
                                     ayarlarAcik = !ayarlarAcik
@@ -592,7 +576,6 @@ fun RandimanMaas() {
                             }
 
                             if (ayarlarAcik) {
-
                                 HorizontalDivider()
                                 Spacer(Modifier.height(12.dp))
 
@@ -633,9 +616,6 @@ fun RandimanMaas() {
 
                                 HorizontalDivider()
                                 Spacer(Modifier.height(12.dp))
-
-                                Text(
-                                    
 
                                 Text(
                                     "BİRİM FİYATLARI",
@@ -689,34 +669,12 @@ fun RandimanMaas() {
                     )
                 }
 
-                                Text(
-                                    "Duruş karşılığı: Saat başına 7 ek mekik.",
-                                    color = Color.DarkGray,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Text(
-                        "GÜNLÜK KAYITLAR",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(
-                            start = 4.dp,
-                            top = 6.dp,
-                            bottom = 2.dp
-                        )
-                    )
-                }
-
                 itemsIndexed(gunler) { gun, kayit ->
-
                     val pazar = pazarMi(seciliAy, gun + 1)
+
                     val gunZemini =
                         if (pazar) PazarZemin else Color.White
+
                     val gunYazisi =
                         if (pazar) PazarYazi else Yesil
 
@@ -730,7 +688,6 @@ fun RandimanMaas() {
                         Column(
                             modifier = Modifier.padding(12.dp)
                         ) {
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -790,14 +747,12 @@ fun RandimanMaas() {
                             )
 
                             if (acikGunler[gun]) {
-
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 10.dp),
                                     color = gunYazisi.copy(alpha = 0.4f)
                                 )
 
                                 for (tezgah in 0..2) {
-
                                     Text(
                                         "${tezgahNumaralari[tezgah]}. TEZGÂH",
                                         color = gunYazisi,
@@ -878,4 +833,3 @@ fun RandimanMaas() {
         }
     }
 }
-                      
