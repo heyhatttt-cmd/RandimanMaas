@@ -635,17 +635,7 @@ fun RandimanMaas() {
                                 Spacer(Modifier.height(12.dp))
 
                                 Text(
-                                    "BİRİM FİYATLARI",
-                                    color = Yesil,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-
-                                Spacer(Modifier.height(8.dp))
-                                
-                                }
-
-                                HorizontalDivider()
-                                Spacer(Modifier.height(12.dp))
+                                    
 
                                 Text(
                                     "BİRİM FİYATLARI",
@@ -675,6 +665,29 @@ fun RandimanMaas() {
 
                                     Spacer(Modifier.height(8.dp))
                                 }
+
+                                Text(
+                                    "Duruş karşılığı: Saat başına 7 ek mekik.",
+                                    color = Color.DarkGray,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Text(
+                        "GÜNLÜK KAYITLAR",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(
+                            start = 4.dp,
+                            top = 6.dp,
+                            bottom = 2.dp
+                        )
+                    )
+                }
 
                                 Text(
                                     "Duruş karşılığı: Saat başına 7 ek mekik.",
