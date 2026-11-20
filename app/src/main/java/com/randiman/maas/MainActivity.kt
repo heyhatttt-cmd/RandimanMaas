@@ -35,6 +35,9 @@ private fun sayi(deger: String): Double =
 private fun tl(deger: Double): String =
     String.format(Locale("tr", "TR"), "%.2f", deger)
 
+private fun fiyat(deger: Double): String =
+    String.format(Locale("tr", "TR"), "%.4f", deger)
+
 private fun ayAnahtari(ay: Calendar): String =
     String.format(
         Locale.US,
@@ -94,7 +97,8 @@ private fun ayHazirla(
 
     for (tezgah in 0..2) {
         val eskiBirim = if (buAyMi) {
-            prefs.getString("birim_$tezgah", "13.3550") ?: "13.3550"
+            prefs.getString("birim_$tezgah", "13.3550")
+                ?: "13.3550"
         } else {
             "13.3550"
         }
@@ -160,6 +164,15 @@ private fun birimleriOku(
     }
 }
 
+private fun tezgahNumaralariniOku(
+    prefs: android.content.SharedPreferences
+): List<String> {
+    return List(3) { index ->
+        prefs.getString("tezgah_no_$index", "${index + 1}")
+            ?: "${index + 1}"
+    }
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -173,6 +186,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RandimanMaas() {
+
     val context = LocalContext.current
 
     val prefs = remember {
@@ -205,6 +219,12 @@ fun RandimanMaas() {
         }
     }
 
+    val tezgahNumaralari = remember {
+        mutableStateListOf<String>().apply {
+            addAll(tezgahNumaralariniOku(prefs))
+        }
+    }
+
     val acikGunler = remember {
         mutableStateListOf<Boolean>().apply {
             repeat(ayGunSayisi(ilkAy)) {
@@ -223,6 +243,10 @@ fun RandimanMaas() {
 
         birimler.forEachIndexed { index, deger ->
             editor.putString("birim_${anahtar}_$index", deger)
+        }
+
+        tezgahNumaralari.forEachIndexed { index, numara ->
+            editor.putString("tezgah_no_$index", numara)
         }
 
         gunler.forEachIndexed { gun, kayit ->
@@ -253,14 +277,10 @@ fun RandimanMaas() {
         seciliAy = yeniTakvim
 
         gunler.clear()
-        gunler.addAll(
-            ayKayitlariniOku(prefs, yeniTakvim)
-        )
+        gunler.addAll(ayKayitlariniOku(prefs, yeniTakvim))
 
         birimler.clear()
-        birimler.addAll(
-            birimleriOku(prefs, yeniTakvim)
-        )
+        birimler.addAll(birimleriOku(prefs, yeniTakvim))
 
         acikGunler.clear()
         repeat(ayGunSayisi(yeniTakvim)) {
@@ -282,10 +302,7 @@ fun RandimanMaas() {
         val yeni = gunler[gun].mekikler.toMutableList()
         yeni[tezgah] = deger.filter { it.isDigit() }
 
-        gunler[gun] = gunler[gun].copy(
-            mekikler = yeni
-        )
-
+        gunler[gun] = gunler[gun].copy(mekikler = yeni)
         kaydet()
     }
 
@@ -300,10 +317,7 @@ fun RandimanMaas() {
             it.isDigit() || it == ',' || it == '.'
         }
 
-        gunler[gun] = gunler[gun].copy(
-            duruslar = yeni
-        )
-
+        gunler[gun] = gunler[gun].copy(duruslar = yeni)
         kaydet()
     }
 
@@ -313,6 +327,17 @@ fun RandimanMaas() {
     ) {
         birimler[tezgah] = deger.filter {
             it.isDigit() || it == ',' || it == '.'
+        }
+
+        kaydet()
+    }
+
+    fun guncelleTezgahNumarasi(
+        tezgah: Int,
+        deger: String
+    ) {
+        tezgahNumaralari[tezgah] = deger.filter {
+            it.isDigit()
         }
 
         kaydet()
@@ -329,54 +354,41 @@ fun RandimanMaas() {
             sayi(birimler[tezgah])
     }
 
-    val toplamKazanc = gunler.sumOf { gun ->
-        (0..2).sumOf { tezgah ->
-            tezgahKazanci(gun, tezgah)
+    // TEZGÂH BAZINDA TOPLAM MEKİKLER
+
+    val tezgahToplamMekikler = (0..2).map { tezgah ->
+        gunler.sumOf { gun ->
+            sayi(gun.mekikler[tezgah])
         }
     }
 
-    val toplamMekik = gunler.sumOf { gun ->
-        gun.mekikler.sumOf { sayi(it) }
-    }
+    // ÜÇ TEZGÂHIN GENEL MEKİK TOPLAMI
+
+    val toplamMekik = tezgahToplamMekikler.sum()
+
+    // TÜM DURUŞ SAATLERİ
 
     val toplamDurus = gunler.sumOf { gun ->
         gun.duruslar.sumOf { sayi(it) }
     }
 
-    val birinciKayitliGunler = gunler.filter {
-        it.mekikler[0].isNotBlank()
+    // DURUŞTAN GELEN EK MEKİK
+
+    val durusEkMekik = toplamDurus * 7.0
+
+    // TOPLAM BİRİM FİYATI
+
+    val toplamBirimFiyati = birimler.sumOf {
+        sayi(it)
     }
 
-    val ikinciKayitliGunler = gunler.filter {
-        it.mekikler[1].isNotBlank()
+    // TOPLAM MAAŞ
+
+    val toplamKazanc = gunler.sumOf { gun ->
+        (0..2).sumOf { tezgah ->
+            tezgahKazanci(gun, tezgah)
+        }
     }
-
-    val ortakKayitliGunler = gunler.filter {
-        it.mekikler[0].isNotBlank() &&
-        it.mekikler[1].isNotBlank()
-    }
-
-    val birinciOrtalama =
-        if (birinciKayitliGunler.isNotEmpty()) {
-            birinciKayitliGunler.sumOf {
-                sayi(it.mekikler[0])
-            } / birinciKayitliGunler.size
-        } else 0.0
-
-    val ikinciOrtalama =
-        if (ikinciKayitliGunler.isNotEmpty()) {
-            ikinciKayitliGunler.sumOf {
-                sayi(it.mekikler[1])
-            } / ikinciKayitliGunler.size
-        } else 0.0
-
-    val toplamOrtalama =
-        if (ortakKayitliGunler.isNotEmpty()) {
-            ortakKayitliGunler.sumOf {
-                sayi(it.mekikler[0]) +
-                sayi(it.mekikler[1])
-            } / ortakKayitliGunler.size
-        } else 0.0
 
     val renkler = lightColorScheme(
         primary = Turkuaz,
@@ -388,6 +400,7 @@ fun RandimanMaas() {
     )
 
     MaterialTheme(colorScheme = renkler) {
+
         Scaffold(
             containerColor = Turkuaz,
 
@@ -419,6 +432,8 @@ fun RandimanMaas() {
                 verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
 
+                // AY SEÇİMİ
+
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -440,15 +455,13 @@ fun RandimanMaas() {
                             verticalAlignment =
                                 androidx.compose.ui.Alignment.CenterVertically
                         ) {
+
                             TextButton(
                                 onClick = {
                                     ayDegistir(-1)
                                 }
                             ) {
-                                Text(
-                                    "‹ ÖNCEKİ",
-                                    color = Yesil
-                                )
+                                Text("‹ ÖNCEKİ", color = Yesil)
                             }
 
                             Text(
@@ -464,14 +477,13 @@ fun RandimanMaas() {
                                     ayDegistir(1)
                                 }
                             ) {
-                                Text(
-                                    "SONRAKİ ›",
-                                    color = Yesil
-                                )
+                                Text("SONRAKİ ›", color = Yesil)
                             }
                         }
                     }
                 }
+
+                // TOPLAM MAAŞ VE MEKİK BİLGİLERİ
 
                 item {
                     Card(
@@ -481,14 +493,17 @@ fun RandimanMaas() {
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
+
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement =
-                                Arrangement.spacedBy(8.dp)
+                                Arrangement.spacedBy(10.dp)
                         ) {
+
                             Text(
                                 "TOPLAM MAAŞ",
-                                color = Color.White
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium
                             )
 
                             Text(
@@ -501,56 +516,78 @@ fun RandimanMaas() {
                                 color = Color.White.copy(alpha = 0.5f)
                             )
 
+                            // HER TEZGÂHIN MEKİK TOPLAMI
+
+                            for (tezgah in 0..2) {
+
+                                Text(
+                                    "${tezgahNumaralari[tezgah]}. TEZGÂH TOPLAM MEKİK",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+
+                                Text(
+                                    "${tl(tezgahToplamMekikler[tezgah])} mekik",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                            }
+
+                            HorizontalDivider(
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+
                             Text(
-                                "1. TEZGÂH ORTALAMASI",
+                                "TEZGÂH TOPLAMI",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Text(
+                                "${tl(toplamMekik)} mekik",
+                                color = Color.White,
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+
+                            HorizontalDivider(
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+
+                            Text(
+                                "DURUŞLAR TOPLAM SAATİ",
                                 color = Color.White
                             )
 
                             Text(
-                                "${tl(birinciOrtalama)} mekik",
+                                "${tl(toplamDurus)} saat",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleLarge
                             )
 
                             Text(
-                                "2. TEZGÂH ORTALAMASI",
+                                "Duruş ek mekiği: ${tl(durusEkMekik)}",
+                                color = Color.White
+                            )
+
+                            HorizontalDivider(
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+
+                            Text(
+                                "TOPLAM BİRİM FİYATI",
                                 color = Color.White
                             )
 
                             Text(
-                                "${tl(ikinciOrtalama)} mekik",
+                                "${fiyat(toplamBirimFiyati)} TL",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleLarge
-                            )
-
-                            Text(
-                                "1 + 2. TEZGÂH TOPLAM ORTALAMASI",
-                                color = Color.White
-                            )
-
-                            Text(
-                                "${tl(toplamOrtalama)} mekik",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-
-                            Text(
-                                "Toplam mekik: ${tl(toplamMekik)}",
-                                color = Color.White
-                            )
-
-                            Text(
-                                "Toplam duruş: ${tl(toplamDurus)} saat",
-                                color = Color.White
-                            )
-
-                            Text(
-                                "Duruş ek mekiği: ${tl(toplamDurus * 7)}",
-                                color = Color.White
                             )
                         }
                     }
                 }
+
+                // AYARLAR
 
                 item {
                     Card(
@@ -559,20 +596,24 @@ fun RandimanMaas() {
                             containerColor = Color.White
                         )
                     ) {
+
                         Column(
                             modifier = Modifier.padding(12.dp)
                         ) {
+
                             TextButton(
                                 onClick = {
                                     ayarlarAcik = !ayarlarAcik
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement =
                                         Arrangement.SpaceBetween
                                 ) {
+
                                     Text(
                                         "⚙ AYARLAR",
                                         color = Yesil,
@@ -588,207 +629,43 @@ fun RandimanMaas() {
                             }
 
                             if (ayarlarAcik) {
+
+                                HorizontalDivider()
+
+                                Spacer(Modifier.height(12.dp))
+
                                 Text(
-                                    "TEZGÂH BİRİM FİYATLARI",
-                                    style = MaterialTheme.typography.titleSmall
+                                    "TEZGÂH NUMARALARI",
+                                    color = Yesil,
+                                    style = MaterialTheme.typography.titleMedium
                                 )
 
                                 Spacer(Modifier.height(8.dp))
 
+                                Text(
+                                    "Numarayı değiştirdiğinizde bütün geçmiş kayıtlar ve listeler de yeni numarayı kullanır.",
+                                    color = Color.DarkGray,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+
+                                Spacer(Modifier.height(10.dp))
+
                                 for (tezgah in 0..2) {
+
                                     OutlinedTextField(
-                                        value = birimler[tezgah],
+                                        value = tezgahNumaralari[tezgah],
 
                                         onValueChange = {
-                                            guncelleBirim(tezgah, it)
+                                            guncelleTezgahNumarasi(
+                                                tezgah,
+                                                it
+                                            )
                                         },
 
                                         label = {
                                             Text(
-                                                "${tezgah + 1}. Tezgâh Birim Fiyatı (TL)"
+                                                "${tezgah + 1}. Tezgâhın yeni numarası"
                                             )
                                         },
 
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Decimal
-                                        ),
-
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
-                                    )
-
-                                    Spacer(Modifier.height(8.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Text(
-                        "GÜNLÜK KAYITLAR",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
-
-                itemsIndexed(gunler) { index, gun ->
-
-                    val pazar = pazarMi(
-                        seciliAy,
-                        index + 1
-                    )
-
-                    val gunKazanci = (0..2).sumOf {
-                        tezgah ->
-                        tezgahKazanci(gun, tezgah)
-                    }
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (pazar) {
-                                PazarZemin
-                            } else {
-                                Color.White
-                            }
-                        ),
-
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp)
-                        ) {
-
-                            TextButton(
-                                onClick = {
-                                    acikGunler[index] =
-                                        !acikGunler[index]
-                                },
-
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-
-                                    horizontalArrangement =
-                                        Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        "${index + 1}. ${haftaninGunu(seciliAy, index + 1)}",
-
-                                        color = if (pazar) {
-                                            PazarYazi
-                                        } else {
-                                            Yesil
-                                        },
-
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-
-                                    Text(
-                                        if (acikGunler[index]) {
-                                            "Kapat ▲"
-                                        } else {
-                                            "Aç ▼"
-                                        },
-
-                                        color = if (pazar) {
-                                            PazarYazi
-                                        } else {
-                                            Turkuaz
-                                        }
-                                    )
-                                }
-                            }
-
-                            Text(
-                                "Günlük kazanç: ${tl(gunKazanci)} TL",
-                                color = if (pazar) PazarYazi else Turkuaz
-                            )
-
-                            if (acikGunler[index]) {
-                                HorizontalDivider()
-
-                                Spacer(Modifier.height(8.dp))
-
-                                for (tezgah in 0..2) {
-
-                                    Text(
-                                        "${tezgah + 1}. TEZGÂH",
-                                        color = Yesil,
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-
-                                    OutlinedTextField(
-                                        value = gun.mekikler[tezgah],
-
-                                        onValueChange = {
-                                            guncelleMekik(
-                                                index,
-                                                tezgah,
-                                                it
-                                            )
-                                        },
-
-                                        label = {
-                                            Text("Mekik sayısı")
-                                        },
-
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Number
-                                        ),
-
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
-                                    )
-
-                                    Spacer(Modifier.height(6.dp))
-
-                                    OutlinedTextField(
-                                        value = gun.duruslar[tezgah],
-
-                                        onValueChange = {
-                                            guncelleDurus(
-                                                index,
-                                                tezgah,
-                                                it
-                                            )
-                                        },
-
-                                        label = {
-                                            Text("Duruş saati")
-                                        },
-
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Decimal
-                                        ),
-
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
-                                    )
-
-                                    Text(
-                                        "Tezgâh kazancı: ${tl(tezgahKazanci(gun, tezgah))} TL",
-                                        color = Turkuaz
-                                    )
-
-                                    Spacer(Modifier.height(12.dp))
-                                }
-
-                                HorizontalDivider()
-
-                                Text(
-                                    "GÜNLÜK TOPLAM: ${tl(gunKazanci)} TL",
-                                    color = Yesil,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+                
