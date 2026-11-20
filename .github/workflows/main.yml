@@ -27,7 +27,11 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build APK
-        run: gradle assembleDebug -Pandroid.useAndroidX=true --stacktrace
+        run: gradle assembleDebug -Pandroid.useAndroidX=true
+
+      - name: Check APK Signature
+        run: |
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -35,3 +39,4 @@ jobs:
           name: RandimanMaas-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          
